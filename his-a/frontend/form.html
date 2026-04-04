@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Information Form</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Kanit', sans-serif;
+    }
+
+    body {
+      background: #f4f7fb;
+      padding: 40px 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: auto;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #2563eb, #1e40af);
+      color: white;
+      padding: 24px 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.95;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      background: #eaf1ff;
+      border-bottom: 1px solid #dbe4f0;
+    }
+
+    .tab-btn {
+      flex: 1;
+      min-width: 200px;
+      padding: 16px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      color: #1e3a8a;
+      transition: 0.3s;
+    }
+
+    .tab-btn:hover {
+      background: #dbeafe;
+    }
+
+    .tab-btn.active {
+      background: white;
+      border-bottom: 3px solid #2563eb;
+      color: #2563eb;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 30px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-title {
+      font-size: 22px;
+      margin-bottom: 20px;
+      color: #1e3a8a;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    input,
+    select,
+    textarea {
+      padding: 12px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+      transition: 0.2s;
+      background: #fff;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .form-actions {
+      margin-top: 30px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: 0.3s;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 22px;
+      }
+
+      .tab-btn {
+        font-size: 14px;
+        padding: 14px 10px;
+      }
+
+      .tab-content {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>แบบฟอร์มข้อมูลผู้ป่วย</h1>
+      <p>ระบบบันทึกข้อมูลผู้ป่วย การรับบริการ และใบสั่งยา</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="openTab(event, 'patientTab')">ฟอร์มที่ 1: ข้อมูลผู้ป่วย</button>
+      <button class="tab-btn" onclick="openTab(event, 'encounterTab')">ฟอร์มที่ 2: ข้อมูลการมารับบริการ</button>
+      <button class="tab-btn" onclick="openTab(event, 'medicationTab')">ฟอร์มที่ 3: ข้อมูลใบสั่งยา</button>
+    </div>
+
+    <!-- Form 1 -->
+    <div id="patientTab" class="tab-content active">
+      <h2 class="form-title">ข้อมูลผู้ป่วย</h2>
+      <form>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="hn">HN</label>
+            <input type="text" id="hn" name="hn" placeholder="กรอก HN">
+          </div>
+
+          <div class="form-group">
+            <label for="citizenId">เลขประชาชน</label>
+            <input type="text" id="citizenId" name="citizenId" placeholder="กรอกเลขประชาชน 13 หลัก">
+          </div>
+
+          <div class="form-group">
+            <label for="firstName">ชื่อ</label>
+            <input type="text" id="firstName" name="firstName" placeholder="กรอกชื่อ">
+          </div>
+
+          <div class="form-group">
+            <label for="lastName">นามสกุล</label>
+            <input type="text" id="lastName" name="lastName" placeholder="กรอกนามสกุล">
+          </div>
+
+          <div class="form-group">
+            <label for="gender">เพศ</label>
+            <select id="gender" name="gender">
+              <option value="">เลือกเพศ</option>
+              <option value="male">ชาย</option>
+              <option value="female">หญิง</option>
+              <option value="other">อื่น ๆ</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="birthDate">วันเกิด</label>
+            <input type="date" id="birthDate" name="birthDate">
+          </div>
+
+          <div class="form-group">
+            <label for="phone">เบอร์โทร</label>
+            <input type="tel" id="phone" name="phone" placeholder="กรอกเบอร์โทร">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="address">ที่อยู่</label>
+            <textarea id="address" name="address" placeholder="กรอกที่อยู่"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+          <button type="reset" class="btn btn-secondary">ล้างข้อมูล</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Form 2 -->
+    <div id="encounterTab" class="tab-content">
+      <h2 class="form-title">ข้อมูลการมารับบริการ</h2>
+      <form>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="visitDateTime">วันที่/เวลาเข้ารับบริการ</label>
+            <input type="datetime-local" id="visitDateTime" name="visitDateTime">
+          </div>
+
+          <div class="form-group">
+            <label for="serviceType">ประเภทการรับบริการ</label>
+            <select id="serviceType" name="serviceType">
+              <option value="">เลือกประเภทการรับบริการ</option>
+              <option value="opd">ผู้ป่วยนอก (OPD)</option>
+              <option value="ipd">ผู้ป่วยใน (IPD)</option>
+              <option value="emergency">ฉุกเฉิน</option>
+              <option value="followup">ติดตามอาการ</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="department">แผนก</label>
+            <input type="text" id="department" name="department" placeholder="เช่น อายุรกรรม / กุมารเวช">
+          </div>
+
+          <div class="form-group">
+            <label for="doctor">แพทย์</label>
+            <input type="text" id="doctor" name="doctor" placeholder="ชื่อแพทย์">
+          </div>
+
+          <div class="form-group">
+            <label for="encounterStatus">สถานะการรับบริการ</label>
+            <select id="encounterStatus" name="encounterStatus">
+              <option value="">เลือกสถานะ</option>
+              <option value="planned">วางแผนไว้</option>
+              <option value="arrived">มาถึงแล้ว</option>
+              <option value="in-progress">กำลังรับบริการ</option>
+              <option value="finished">เสร็จสิ้น</option>
+              <option value="cancelled">ยกเลิก</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+          <button type="reset" class="btn btn-secondary">ล้างข้อมูล</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Form 3 -->
+    <div id="medicationTab" class="tab-content">
+      <h2 class="form-title">ข้อมูลใบสั่งยา</h2>
+      <form>
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="medicineName">ชื่อยา</label>
+            <input type="text" id="medicineName" name="medicineName" placeholder="กรอกชื่อยา">
+          </div>
+
+          <div class="form-group">
+            <label for="dosage">ขนาดยา</label>
+            <input type="text" id="dosage" name="dosage" placeholder="เช่น 500 mg">
+          </div>
+
+          <div class="form-group full-width">
+            <label for="instruction">วิธีใช้</label>
+            <textarea id="instruction" name="instruction" placeholder="เช่น รับประทานครั้งละ 1 เม็ด หลังอาหาร"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="frequency">ความถี่</label>
+            <input type="text" id="frequency" name="frequency" placeholder="เช่น วันละ 3 ครั้ง">
+          </div>
+
+          <div class="form-group">
+            <label for="quantity">จำนวน</label>
+            <input type="number" id="quantity" name="quantity" placeholder="กรอกจำนวน">
+          </div>
+
+          <div class="form-group">
+            <label for="prescriptionDate">วันที่สั่งยา</label>
+            <input type="date" id="prescriptionDate" name="prescriptionDate">
+          </div>
+
+          <div class="form-group">
+            <label for="prescribingDoctor">แพทย์ผู้สั่งยา</label>
+            <input type="text" id="prescribingDoctor" name="prescribingDoctor" placeholder="ชื่อแพทย์ผู้สั่งยา">
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+          <button type="reset" class="btn btn-secondary">ล้างข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openTab(event, tabId) {
+      const tabContents = document.querySelectorAll(".tab-content");
+      const tabButtons = document.querySelectorAll(".tab-btn");
+
+      tabContents.forEach(tab => tab.classList.remove("active"));
+      tabButtons.forEach(btn => btn.classList.remove("active"));
+
+      document.getElementById(tabId).classList.add("active");
+      event.currentTarget.classList.add("active");
+    }
+  </script>
+</body>
+</html>
