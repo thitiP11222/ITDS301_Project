@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Patient Information Form</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     * {
       box-sizing: border-box;
@@ -171,6 +171,62 @@
       background: #d1d5db;
     }
 
+    .btn-success {
+      background: #16a34a;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #15803d;
+    }
+
+    .result-section {
+      padding: 30px;
+      border-top: 1px solid #e5e7eb;
+      background: #f8fafc;
+    }
+
+    .result-title {
+      font-size: 22px;
+      margin-bottom: 16px;
+      color: #1e3a8a;
+    }
+
+    .status-box {
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      display: none;
+    }
+
+    .status-box.success {
+      display: block;
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .status-box.error {
+      display: block;
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 20px;
+      border-radius: 12px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
     @media (max-width: 768px) {
       .header h1 {
         font-size: 22px;
@@ -181,7 +237,8 @@
         padding: 14px 10px;
       }
 
-      .tab-content {
+      .tab-content,
+      .result-section {
         padding: 20px;
       }
     }
@@ -200,10 +257,9 @@
       <button class="tab-btn" onclick="openTab(event, 'medicationTab')">ฟอร์มที่ 3: ข้อมูลใบสั่งยา</button>
     </div>
 
-    <!-- Form 1 -->
     <div id="patientTab" class="tab-content active">
       <h2 class="form-title">ข้อมูลผู้ป่วย</h2>
-      <form>
+      <form onsubmit="event.preventDefault()">
         <div class="form-grid">
           <div class="form-group">
             <label for="hn">HN</label>
@@ -250,18 +306,12 @@
             <textarea id="address" name="address" placeholder="กรอกที่อยู่"></textarea>
           </div>
         </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
-          <button type="reset" class="btn btn-secondary">ล้างข้อมูล</button>
-        </div>
       </form>
     </div>
 
-    <!-- Form 2 -->
     <div id="encounterTab" class="tab-content">
       <h2 class="form-title">ข้อมูลการมารับบริการ</h2>
-      <form>
+      <form onsubmit="event.preventDefault()">
         <div class="form-grid">
           <div class="form-group">
             <label for="visitDateTime">วันที่/เวลาเข้ารับบริการ</label>
@@ -301,18 +351,12 @@
             </select>
           </div>
         </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
-          <button type="reset" class="btn btn-secondary">ล้างข้อมูล</button>
-        </div>
       </form>
     </div>
 
-    <!-- Form 3 -->
     <div id="medicationTab" class="tab-content">
       <h2 class="form-title">ข้อมูลใบสั่งยา</h2>
-      <form>
+      <form onsubmit="event.preventDefault()">
         <div class="form-grid">
           <div class="form-group">
             <label for="medicineName">ชื่อยา</label>
@@ -349,26 +393,135 @@
             <input type="text" id="prescribingDoctor" name="prescribingDoctor" placeholder="ชื่อแพทย์ผู้สั่งยา">
           </div>
         </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
-          <button type="reset" class="btn btn-secondary">ล้างข้อมูล</button>
-        </div>
       </form>
+    </div>
+
+    <div class="result-section">
+      <h2 class="result-title">FHIR JSON / Response</h2>
+
+      <div class="form-actions" style="margin-top: 0; margin-bottom: 20px;">
+        <button type="button" class="btn btn-secondary" onclick="previewFHIR()">Preview FHIR JSON</button>
+        <button type="button" class="btn btn-success" onclick="sendFHIR()">Send to FHIR Server</button>
+        <button type="button" class="btn btn-primary" onclick="clearResult()">ล้างผลลัพธ์</button>
+      </div>
+
+      <div id="statusBox" class="status-box"></div>
+      <pre id="result">ผลลัพธ์ FHIR JSON และ response จะแสดงที่นี่...</pre>
     </div>
   </div>
 
   <script>
-    function openTab(event, tabId) {
-      const tabContents = document.querySelectorAll(".tab-content");
-      const tabButtons = document.querySelectorAll(".tab-btn");
+  const API_BASE = "http://localhost:5000/api";
+  let currentTab = "patientTab";
 
-      tabContents.forEach(tab => tab.classList.remove("active"));
-      tabButtons.forEach(btn => btn.classList.remove("active"));
+  function openTab(event, tabId) {
+    const tabContents = document.querySelectorAll(".tab-content");
+    const tabButtons = document.querySelectorAll(".tab-btn");
 
-      document.getElementById(tabId).classList.add("active");
-      event.currentTarget.classList.add("active");
+    tabContents.forEach(tab => tab.classList.remove("active"));
+    tabButtons.forEach(btn => btn.classList.remove("active"));
+
+    document.getElementById(tabId).classList.add("active");
+    event.currentTarget.classList.add("active");
+
+    currentTab = tabId;
+  }
+
+  function getFormData() {
+    return {
+      activeTab: currentTab,
+
+      hn: document.getElementById("hn").value,
+      citizenId: document.getElementById("citizenId").value,
+      firstName: document.getElementById("firstName").value,
+      lastName: document.getElementById("lastName").value,
+      gender: document.getElementById("gender").value,
+      birthDate: document.getElementById("birthDate").value,
+      phone: document.getElementById("phone").value,
+      address: document.getElementById("address").value,
+
+      visitDateTime: document.getElementById("visitDateTime").value,
+      serviceType: document.getElementById("serviceType").value,
+      department: document.getElementById("department").value,
+      doctor: document.getElementById("doctor").value,
+      encounterStatus: document.getElementById("encounterStatus").value,
+
+      medicineName: document.getElementById("medicineName").value,
+      dosage: document.getElementById("dosage").value,
+      instruction: document.getElementById("instruction").value,
+      frequency: document.getElementById("frequency").value,
+      quantity: document.getElementById("quantity").value,
+      prescriptionDate: document.getElementById("prescriptionDate").value,
+      prescribingDoctor: document.getElementById("prescribingDoctor").value
+    };
+  }
+
+  function setStatus(message, type = "success") {
+    const box = document.getElementById("statusBox");
+    box.textContent = message;
+    box.className = `status-box ${type}`;
+  }
+
+  function clearResult() {
+    document.getElementById("result").textContent = "ผลลัพธ์ FHIR JSON และ response จะแสดงที่นี่...";
+    const box = document.getElementById("statusBox");
+    box.textContent = "";
+    box.className = "status-box";
+  }
+
+  async function previewFHIR() {
+    clearResult();
+    const payload = getFormData();
+
+    try {
+      const res = await fetch(`${API_BASE}/preview-fhir`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Preview failed");
+      }
+
+      setStatus("สร้าง FHIR JSON ของแท็บปัจจุบันสำเร็จ", "success");
+      document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+      setStatus(`เกิดข้อผิดพลาด: ${error.message}`, "error");
+      document.getElementById("result").textContent = error.stack || error.message;
     }
-  </script>
+  }
+
+  async function sendFHIR() {
+    clearResult();
+    const payload = getFormData();
+
+    try {
+      const res = await fetch(`${API_BASE}/send-fhir`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.details || "Send failed");
+      }
+
+      setStatus("ส่งข้อมูลไปยัง FHIR Server สำเร็จ", "success");
+      document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+    } catch (error) {
+      setStatus(`เกิดข้อผิดพลาด: ${error.message}`, "error");
+      document.getElementById("result").textContent = error.stack || error.message;
+    }
+  }
+</script>
 </body>
 </html>
