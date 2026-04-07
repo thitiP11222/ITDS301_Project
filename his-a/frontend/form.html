@@ -400,20 +400,15 @@
       <h2 class="result-title">FHIR JSON / Response</h2>
 
       <div class="form-actions" style="margin-top: 0; margin-bottom: 20px;">
-        <button type="button" class="btn btn-secondary" onclick="previewFHIR()">Preview FHIR JSON</button>
         <button type="button" class="btn btn-success" onclick="sendFHIR()">Send to FHIR Server</button>
         <button type="button" class="btn btn-primary" onclick="clearResult()">ล้างผลลัพธ์</button>
       </div>
 
       <div id="statusBox" class="status-box"></div>
-      <pre id="result">ผลลัพธ์ FHIR JSON และ response จะแสดงที่นี่...</pre>
+      <pre id="resultBox">ยังไม่มีข้อมูล</pre>
     </div>
   </div>
-
-  <script>
-  const API_BASE = "http://localhost:5000/api";
-  let currentTab = "patientTab";
-
+<script>
   function openTab(event, tabId) {
     const tabContents = document.querySelectorAll(".tab-content");
     const tabButtons = document.querySelectorAll(".tab-btn");
@@ -423,104 +418,76 @@
 
     document.getElementById(tabId).classList.add("active");
     event.currentTarget.classList.add("active");
-
-    currentTab = tabId;
   }
 
   function getFormData() {
     return {
-      activeTab: currentTab,
-
-      hn: document.getElementById("hn").value,
-      citizenId: document.getElementById("citizenId").value,
-      firstName: document.getElementById("firstName").value,
-      lastName: document.getElementById("lastName").value,
-      gender: document.getElementById("gender").value,
-      birthDate: document.getElementById("birthDate").value,
-      phone: document.getElementById("phone").value,
-      address: document.getElementById("address").value,
-
-      visitDateTime: document.getElementById("visitDateTime").value,
-      serviceType: document.getElementById("serviceType").value,
-      department: document.getElementById("department").value,
-      doctor: document.getElementById("doctor").value,
-      encounterStatus: document.getElementById("encounterStatus").value,
-
-      medicineName: document.getElementById("medicineName").value,
-      dosage: document.getElementById("dosage").value,
-      instruction: document.getElementById("instruction").value,
-      frequency: document.getElementById("frequency").value,
-      quantity: document.getElementById("quantity").value,
-      prescriptionDate: document.getElementById("prescriptionDate").value,
-      prescribingDoctor: document.getElementById("prescribingDoctor").value
+      patient: {
+        hn: document.getElementById("hn").value,
+        citizenId: document.getElementById("citizenId").value,
+        firstName: document.getElementById("firstName").value,
+        lastName: document.getElementById("lastName").value,
+        gender: document.getElementById("gender").value,
+        birthDate: document.getElementById("birthDate").value,
+        phone: document.getElementById("phone").value,
+        address: document.getElementById("address").value
+      },
+      encounter: {
+        visitDateTime: document.getElementById("visitDateTime").value,
+        serviceType: document.getElementById("serviceType").value,
+        department: document.getElementById("department").value,
+        doctor: document.getElementById("doctor").value,
+        encounterStatus: document.getElementById("encounterStatus").value
+      },
+      medication: {
+        medicineName: document.getElementById("medicineName").value,
+        dosage: document.getElementById("dosage").value,
+        instruction: document.getElementById("instruction").value,
+        frequency: document.getElementById("frequency").value,
+        quantity: document.getElementById("quantity").value,
+        prescriptionDate: document.getElementById("prescriptionDate").value,
+        prescribingDoctor: document.getElementById("prescribingDoctor").value
+      }
     };
   }
 
-  function setStatus(message, type = "success") {
-    const box = document.getElementById("statusBox");
-    box.textContent = message;
-    box.className = `status-box ${type}`;
+  async function sendFHIR() {
+    const statusBox = document.getElementById("statusBox");
+    const resultBox = document.getElementById("resultBox");
+
+    const formData = getFormData();
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/submit-all", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(formData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        statusBox.className = "status-box success";
+        statusBox.textContent = "ส่งข้อมูลไป backend / FHIR Server สำเร็จ";
+      } else {
+        statusBox.className = "status-box error";
+        statusBox.textContent = "เกิดข้อผิดพลาดในการส่งข้อมูล";
+      }
+
+      resultBox.textContent = JSON.stringify(result, null, 2);
+    } catch (error) {
+      statusBox.className = "status-box error";
+      statusBox.textContent = "ไม่สามารถเชื่อมต่อ backend ได้";
+      resultBox.textContent = error.toString();
+    }
   }
 
   function clearResult() {
-    document.getElementById("result").textContent = "ผลลัพธ์ FHIR JSON และ response จะแสดงที่นี่...";
-    const box = document.getElementById("statusBox");
-    box.textContent = "";
-    box.className = "status-box";
-  }
-
-  async function previewFHIR() {
-    clearResult();
-    const payload = getFormData();
-
-    try {
-      const res = await fetch(`${API_BASE}/preview-fhir`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || "Preview failed");
-      }
-
-      setStatus("สร้าง FHIR JSON ของแท็บปัจจุบันสำเร็จ", "success");
-      document.getElementById("result").textContent = JSON.stringify(data, null, 2);
-    } catch (error) {
-      setStatus(`เกิดข้อผิดพลาด: ${error.message}`, "error");
-      document.getElementById("result").textContent = error.stack || error.message;
-    }
-  }
-
-  async function sendFHIR() {
-    clearResult();
-    const payload = getFormData();
-
-    try {
-      const res = await fetch(`${API_BASE}/send-fhir`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || data.details || "Send failed");
-      }
-
-      setStatus("ส่งข้อมูลไปยัง FHIR Server สำเร็จ", "success");
-      document.getElementById("result").textContent = JSON.stringify(data, null, 2);
-    } catch (error) {
-      setStatus(`เกิดข้อผิดพลาด: ${error.message}`, "error");
-      document.getElementById("result").textContent = error.stack || error.message;
-    }
+    document.getElementById("statusBox").className = "status-box";
+    document.getElementById("statusBox").textContent = "";
+    document.getElementById("resultBox").textContent = "ยังไม่มีข้อมูล";
   }
 </script>
 </body>

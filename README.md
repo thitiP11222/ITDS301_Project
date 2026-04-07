@@ -22,3 +22,10 @@ ITDS301_Project/
     ├── config/
     └── README.md
 ```
+
+
+ฟอร์มกรอกข้อมูล 3 ส่วน
+Backend รับข้อมูล
+ฟังก์ชันแปลงข้อมูลเป็น FHIR
+เชื่อมต่อ HAPI FHIR Server
+ทดสอบ POST/GET ได้จริง
