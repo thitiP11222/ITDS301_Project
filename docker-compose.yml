@@ -1,0 +1,35 @@
+services:
+  his-a:
+    build: ./his-a
+    container_name: his-a
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./his-a:/app
+    environment:
+      - FLASK_ENV=development
+      - FHIR_SERVER_URL=http://fhir-server:8080/fhir
+    depends_on:
+      - fhir-server
+    restart: unless-stopped
+
+  fhir-server:
+    image: hapiproject/hapi:latest
+    container_name: fhir-server
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  his-b:
+    build: ./his-b
+    container_name: his-b
+    ports:
+      - "5002:5000"
+    volumes:
+      - ./his-b:/app
+    environment:
+      - FLASK_ENV=development
+      - FHIR_SERVER_URL=http://fhir-server:8080/fhir
+    depends_on:
+      - fhir-server
+    restart: unless-stopped
