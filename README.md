@@ -1,6 +1,6 @@
 
 ## โครงสร้างโปรเจคภาพรวม
-
+https://docs.google.com/document/d/1uIcz8np1T9Hv8bNEc42iKe_zlDy1G0ZIj9NBFJd_yHI/edit?usp=sharing
 ```text
 ITDS301_Project/
 │
