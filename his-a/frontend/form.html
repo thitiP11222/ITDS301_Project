@@ -409,7 +409,7 @@
     </div>
   </div>
 <script>
-  function openTab(event, tabId) {
+ function openTab(event, tabId) {
     const tabContents = document.querySelectorAll(".tab-content");
     const tabButtons = document.querySelectorAll(".tab-btn");
 
@@ -458,19 +458,19 @@
     const formData = getFormData();
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/submit-all", {
+      const response = await fetch("http://localhost:5001/patients", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData.patient)
       });
 
       const result = await response.json();
 
       if (response.ok) {
         statusBox.className = "status-box success";
-        statusBox.textContent = "ส่งข้อมูลไป backend / FHIR Server สำเร็จ";
+        statusBox.textContent = "ส่งข้อมูลผู้ป่วยสำเร็จ";
       } else {
         statusBox.className = "status-box error";
         statusBox.textContent = "เกิดข้อผิดพลาดในการส่งข้อมูล";
@@ -489,6 +489,8 @@
     document.getElementById("statusBox").textContent = "";
     document.getElementById("resultBox").textContent = "ยังไม่มีข้อมูล";
   }
+
+
 </script>
 </body>
 </html>
