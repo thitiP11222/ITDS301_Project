@@ -458,7 +458,7 @@
     const formData = getFormData();
 
     try {
-      const response = await fetch("http://localhost:5001/patients", {
+      const response = await fetch("/patients", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

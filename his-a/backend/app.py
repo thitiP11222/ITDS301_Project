@@ -98,7 +98,7 @@ def form_page():
 def view_patient_page():
     return send_from_directory(FRONTEND_DIR, "view-patient.html")
 
-@app.route("/", methods=["GET"])
+@app.route("/api", methods=["GET"])
 def home():
     return jsonify({
         "message": "HIS-A Flask backend is running",
@@ -280,6 +280,71 @@ def search_patient():
             "detail": str(e)
         }), 502
 
+@app.route("/patients/<patient_id>", methods=["DELETE"])
+def delete_patient(patient_id):
+    try:
+        response = requests.delete(
+            f"{FHIR_SERVER_URL}/Patient/{patient_id}",
+            headers={"Accept": "application/fhir+json"},
+            timeout=20
+        )
+
+        if response.status_code in [200, 204]:
+            return jsonify({"message": "ลบข้อมูลสำเร็จ"}), 200
+
+        return jsonify({
+            "message": "ลบข้อมูลไม่สำเร็จ",
+            "status_code": response.status_code,
+            "detail": response.text
+        }), 502
+
+    except requests.RequestException as e:
+        return jsonify({
+            "message": "Cannot connect to FHIR server",
+            "detail": str(e)
+        }), 502
+    
+@app.route("/patients/<patient_id>", methods=["PUT"])
+def update_patient(patient_id):
+    try:
+        body = request.get_json(force=True)
+
+        if not body.get("firstName") or not body.get("lastName"):
+            return jsonify({"message": "กรุณากรอกชื่อและนามสกุล"}), 400
+
+        patient_resource = build_patient_resource(body)
+        patient_resource["id"] = patient_id
+
+        response = requests.put(
+            f"{FHIR_SERVER_URL}/Patient/{patient_id}",
+            json=patient_resource,
+            headers=FHIR_HEADERS,
+            timeout=20
+        )
+
+        response_json = {}
+        try:
+            response_json = response.json()
+        except ValueError:
+            response_json = {"raw_response": response.text}
+
+        if not response.ok:
+            return jsonify({
+                "message": "แก้ไขข้อมูลไม่สำเร็จ",
+                "status_code": response.status_code,
+                "detail": response_json
+            }), 502
+
+        return jsonify({
+            "message": "แก้ไขข้อมูลสำเร็จ",
+            "patient": response_json
+        }), 200
+
+    except requests.RequestException as e:
+        return jsonify({
+            "message": "Cannot connect to FHIR server",
+            "detail": str(e)
+        }), 502    
 
 
 if __name__ == "__main__":

@@ -86,6 +86,148 @@
       overflow-x: auto;
       font-size: 13px;
     }
+
+    .modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 999;
+}
+
+.modal-content {
+  background: white;
+  width: 100%;
+  max-width: 650px;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.18);
+  animation: fadeInUp 0.2s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #1e3a8a;
+  font-size: 24px;
+}
+
+.close-btn {
+  background: transparent;
+  color: #ef4444;
+  border: none;
+  font-size: 30px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.detail-item {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.detail-item.full {
+  grid-column: 1 / -1;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.detail-value {
+  font-size: 17px;
+  color: #0f172a;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 15px;
+  font-family: 'Sarabun', sans-serif;
+  box-sizing: border-box;
+  background: white;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  min-width: 260px;
+  max-width: 360px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  z-index: 2000;
+  opacity: 0;
+  transform: translateY(-10px);
+  pointer-events: none;
+  transition: all 0.25s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.success {
+  background: #16a34a;
+}
+
+.toast.error {
+  background: #dc2626;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
   </style>
 </head>
 <body>
@@ -102,97 +244,372 @@
     <div id="result"></div>
   </div>
 
+<div id="detailModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>รายละเอียดผู้ป่วย</h2>
+      <button class="close-btn" onclick="closeDetailModal()">×</button>
+    </div>
+
+    <div id="detailBody" class="detail-grid"></div>
+  </div>
+</div>
   <script>
-    function renderPatients(patients) {
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "";
+function openDetailModal() {
+  document.getElementById("detailModal").style.display = "flex";
+}
 
-      patients.forEach(p => {
-        const card = document.createElement("div");
-        card.className = "card";
+function closeDetailModal() {
+  document.getElementById("detailModal").style.display = "none";
+}
+    
+  function renderPatients(patients) {
+    const resultDiv = document.getElementById("result");
+    resultDiv.innerHTML = "";
 
-        const name = (p.name && p.name[0]) 
-          ? `${p.name[0].given?.[0] || ""} ${p.name[0].family || ""}`
-          : "ไม่ระบุชื่อ";
+    patients.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "card";
 
-        const hn = p.identifier?.find(i => i.system.includes("hn"))?.value || "-";
+      const name = (p.name && p.name[0]) 
+        ? `${p.name[0].given?.[0] || ""} ${p.name[0].family || ""}`
+        : "ไม่ระบุชื่อ";
 
-        card.innerHTML = `
-          <h3>${name}</h3>
-          <p><b>HN:</b> ${hn}</p>
-          <p><b>Gender:</b> ${p.gender || "-"}</p>
-          <p><b>BirthDate:</b> ${p.birthDate || "-"}</p>
-          <pre>${JSON.stringify(p, null, 2)}</pre>
-        `;
+      const hn = p.identifier?.find(i => i.system.includes("hn"))?.value || "-";
 
-        resultDiv.appendChild(card);
-      });
-    }
+      card.innerHTML = `
+        <h3>${name}</h3>
+        <p><b>HN:</b> ${hn}</p>
+        <p><b>Gender:</b> ${p.gender || "-"}</p>
+        <p><b>BirthDate:</b> ${p.birthDate || "-"}</p>
 
-    async function loadAllPatients() {
-      const status = document.getElementById("status");
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button onclick="viewDetail('${p.id}')">ดูรายละเอียด</button>
+          <button onclick="editPatient('${p.id}')">แก้ไข</button>
+          <button onclick="deletePatient('${p.id}')" style="background:red;">ลบ</button>
+        </div>
+      `;
 
-      status.textContent = "กำลังโหลดข้อมูลทั้งหมด...";
+      resultDiv.appendChild(card);
+    });
+  }
 
-      try {
-        const response = await fetch("http://localhost:5001/patients");
-        const data = await response.json();
+  async function loadAllPatients() {
+    const status = document.getElementById("status");
 
-        if (!response.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+    status.textContent = "กำลังโหลดข้อมูลทั้งหมด...";
 
-        if (!data.patients || data.patients.length === 0) {
-          status.className = "status error";
-          status.textContent = "ไม่มีข้อมูลผู้ป่วย";
-          return;
-        }
+    try {
+      const response = await fetch("/patients");
+      const data = await response.json();
 
-        status.className = "status success";
-        status.textContent = `พบ ${data.patients.length} รายการ`;
+      if (!response.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
 
-        renderPatients(data.patients);
-
-      } catch (error) {
+      if (!data.patients || data.patients.length === 0) {
         status.className = "status error";
-        status.textContent = "เชื่อมต่อ backend ไม่ได้";
-      }
-    }
-
-    async function searchPatient() {
-      const hn = document.getElementById("hn").value;
-      const status = document.getElementById("status");
-
-      if (!hn) {
-        loadAllPatients();
+        status.textContent = "ไม่มีข้อมูลผู้ป่วย";
+        document.getElementById("result").innerHTML = "";
         return;
       }
 
-      status.textContent = "กำลังค้นหา...";
+      status.className = "status success";
+      status.textContent = `พบ ${data.patients.length} รายการ`;
 
-      try {
-        const response = await fetch(`http://localhost:5001/patients/search?hn=${hn}`);
-        const data = await response.json();
+      renderPatients(data.patients);
 
-        if (!response.ok) throw new Error("ค้นหาไม่สำเร็จ");
+    } catch (error) {
+      status.className = "status error";
+      status.textContent = "เชื่อมต่อ backend ไม่ได้";
+    }
+  }
 
-        if (!data.patients || data.patients.length === 0) {
-          status.className = "status error";
-          status.textContent = "ไม่พบข้อมูล";
-          return;
-        }
+  async function searchPatient() {
+    const hn = document.getElementById("hn").value;
+    const status = document.getElementById("status");
 
-        status.className = "status success";
-        status.textContent = `พบ ${data.patients.length} รายการ`;
-
-        renderPatients(data.patients);
-
-      } catch (error) {
-        status.className = "status error";
-        status.textContent = "เชื่อมต่อ backend ไม่ได้";
-      }
+    if (!hn) {
+      loadAllPatients();
+      return;
     }
 
-    // โหลดข้อมูลทั้งหมดตอนเปิดหน้า
-    window.onload = loadAllPatients;
-  </script>
+    status.textContent = "กำลังค้นหา...";
+
+    try {
+      const response = await fetch(`/patients/search?hn=${encodeURIComponent(hn)}`);
+      const data = await response.json();
+
+      if (!response.ok) throw new Error("ค้นหาไม่สำเร็จ");
+
+      if (!data.patients || data.patients.length === 0) {
+        status.className = "status error";
+        status.textContent = "ไม่พบข้อมูล";
+        document.getElementById("result").innerHTML = "";
+        return;
+      }
+
+      status.className = "status success";
+      status.textContent = `พบ ${data.patients.length} รายการ`;
+
+      renderPatients(data.patients);
+
+    } catch (error) {
+      status.className = "status error";
+      status.textContent = "เชื่อมต่อ backend ไม่ได้";
+    }
+  }
+
+  async function viewDetail(id) {
+  try {
+    const response = await fetch(`/patients/${id}`);
+    const data = await response.json();
+
+    if (!response.ok) throw new Error("โหลดรายละเอียดไม่สำเร็จ");
+
+    const name = (data.name && data.name[0])
+      ? `${data.name[0].given?.[0] || ""} ${data.name[0].family || ""}`
+      : "ไม่ระบุชื่อ";
+
+    const hn = data.identifier?.find(i => i.system.includes("hn"))?.value || "-";
+    const citizenId = data.identifier?.find(i => i.system.includes("citizen-id"))?.value || "-";
+    const phone = data.telecom?.find(t => t.system === "phone")?.value || "-";
+    const address = data.address?.[0]?.text || "-";
+
+    const detailBody = document.getElementById("detailBody");
+
+    detailBody.innerHTML = `
+      <div class="detail-item">
+        <div class="detail-label">ชื่อ</div>
+        <div class="detail-value">${name}</div>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">HN</div>
+        <div class="detail-value">${hn}</div>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">เลขประชาชน</div>
+        <div class="detail-value">${citizenId}</div>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">เพศ</div>
+        <div class="detail-value">${data.gender || "-"}</div>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">วันเกิด</div>
+        <div class="detail-value">${data.birthDate || "-"}</div>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">เบอร์โทร</div>
+        <div class="detail-value">${phone}</div>
+      </div>
+
+      <div class="detail-item full">
+        <div class="detail-label">ที่อยู่</div>
+        <div class="detail-value">${address}</div>
+      </div>
+    `;
+
+    openDetailModal();
+
+  } catch (error) {
+    alert("โหลดรายละเอียดไม่สำเร็จ");
+  }
+}
+
+
+
+function openEditModal() {
+  document.getElementById("editModal").style.display = "flex";
+}
+
+function closeEditModal() {
+  document.getElementById("editModal").style.display = "none";
+}
+
+  async function editPatient(id) {
+  try {
+    const response = await fetch(`/patients/${id}`);
+    const data = await response.json();
+
+    if (!response.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+
+    const hn = data.identifier?.find(i => i.system.includes("hn"))?.value || "";
+    const citizenId = data.identifier?.find(i => i.system.includes("citizen-id"))?.value || "";
+    const phone = data.telecom?.find(t => t.system === "phone")?.value || "";
+    const address = data.address?.[0]?.text || "";
+    const firstName = data.name?.[0]?.given?.[0] || "";
+    const lastName = data.name?.[0]?.family || "";
+
+    document.getElementById("editPatientId").value = id;
+    document.getElementById("editFirstName").value = firstName;
+    document.getElementById("editLastName").value = lastName;
+    document.getElementById("editHn").value = hn;
+    document.getElementById("editCitizenId").value = citizenId;
+    document.getElementById("editGender").value = data.gender || "";
+    document.getElementById("editBirthDate").value = data.birthDate || "";
+    document.getElementById("editPhone").value = phone;
+    document.getElementById("editAddress").value = address;
+
+    openEditModal();
+  } catch (error) {
+    alert("โหลดข้อมูลสำหรับแก้ไขไม่สำเร็จ");
+  }
+}
+
+async function saveEdit() {
+  const id = document.getElementById("editPatientId").value;
+
+  const payload = {
+    firstName: document.getElementById("editFirstName").value.trim(),
+    lastName: document.getElementById("editLastName").value.trim(),
+    hn: document.getElementById("editHn").value.trim(),
+    citizenId: document.getElementById("editCitizenId").value.trim(),
+    gender: document.getElementById("editGender").value,
+    birthDate: document.getElementById("editBirthDate").value,
+    phone: document.getElementById("editPhone").value.trim(),
+    address: document.getElementById("editAddress").value.trim()
+  };
+
+  try {
+    const response = await fetch(`/patients/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "บันทึกไม่สำเร็จ");
+    }
+
+    showToast("แก้ไขข้อมูลสำเร็จ", "success");
+closeEditModal();
+loadAllPatients();
+  } catch (error) {
+    alert("แก้ไขข้อมูลไม่สำเร็จ");
+  }
+}
+
+function showToast(message, type = "success") {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = `toast show ${type}`;
+
+  clearTimeout(toast._timeout);
+  toast._timeout = setTimeout(() => {
+    toast.className = "toast";
+  }, 2500);
+}
+
+  async function deletePatient(id) {
+    const confirmed = confirm("ต้องการลบข้อมูลผู้ป่วยนี้ใช่หรือไม่?");
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/patients/${id}`, {
+        method: "DELETE"
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "ลบไม่สำเร็จ");
+      }
+
+      alert("ลบข้อมูลสำเร็จ");
+      loadAllPatients();
+    } catch (error) {
+      alert("ลบข้อมูลไม่สำเร็จ");
+    }
+  }
+
+  window.addEventListener("click", function (event) {
+  const detailModal = document.getElementById("detailModal");
+  const editModal = document.getElementById("editModal");
+
+  if (event.target === detailModal) {
+    closeDetailModal();
+  }
+
+  if (event.target === editModal) {
+    closeEditModal();
+  }
+});
+// โหลดข้อมูลทั้งหมดตอนเปิดหน้า
+  window.onload = loadAllPatients;
+</script>
+
+<div id="editModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>แก้ไขข้อมูลผู้ป่วย</h2>
+      <button class="close-btn" onclick="closeEditModal()">×</button>
+    </div>
+
+    <input type="hidden" id="editPatientId" />
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-label">ชื่อ</div>
+        <input type="text" id="editFirstName" class="edit-input" />
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">นามสกุล</div>
+        <input type="text" id="editLastName" class="edit-input" />
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">HN</div>
+        <input type="text" id="editHn" class="edit-input" />
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">เลขประชาชน</div>
+        <input type="text" id="editCitizenId" class="edit-input" />
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">เพศ</div>
+        <select id="editGender" class="edit-input">
+          <option value="">เลือกเพศ</option>
+          <option value="male">ชาย</option>
+          <option value="female">หญิง</option>
+          <option value="other">อื่น ๆ</option>
+          <option value="unknown">ไม่ระบุ</option>
+        </select>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">วันเกิด</div>
+        <input type="date" id="editBirthDate" class="edit-input" />
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-label">เบอร์โทร</div>
+        <input type="text" id="editPhone" class="edit-input" />
+      </div>
+
+      <div class="detail-item full">
+        <div class="detail-label">ที่อยู่</div>
+        <textarea id="editAddress" class="edit-input" rows="3"></textarea>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;">
+      <button onclick="saveEdit()" style="background:#16a34a;">บันทึก</button>
+      <button onclick="closeEditModal()" style="background:#94a3b8;">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
 </body>
 </html>
