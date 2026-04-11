@@ -7,6 +7,8 @@ app = Flask(__name__)
 CORS(app)
 
 FHIR_SERVER_URL = os.getenv("FHIR_SERVER_URL", "http://fhir-server:8080/fhir").rstrip("/")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(os.path.dirname(BASE_DIR), "frontend")
 
 FHIR_HEADERS = {
     "Content-Type": "application/fhir+json",
@@ -85,8 +87,17 @@ def build_patient_resource(data):
     return patient
 
 @app.route("/")
-def serve_index():
-    return send_from_directory(app.static_folder, "form.html")
+def home_page():
+    return send_from_directory(FRONTEND_DIR, "index.html")
+
+@app.route("/form")
+def form_page():
+    return send_from_directory(FRONTEND_DIR, "form.html")
+
+@app.route("/view-patient")
+def view_patient_page():
+    return send_from_directory(FRONTEND_DIR, "view-patient.html")
+
 @app.route("/", methods=["GET"])
 def home():
     return jsonify({
@@ -113,65 +124,66 @@ def health():
         }), 502
 
 
-@app.route("/patients", methods=["POST"])
-def add_patient():
-    try:
+@app.route("/patients", methods=["GET", "POST"])
+def patients():
+    if request.method == "POST":
         body = request.get_json(force=True)
-    except Exception:
-        return jsonify({"message": "Invalid JSON body"}), 400
 
-    if not body:
-        return jsonify({"message": "Request body is required"}), 400
+        if not body.get("firstName") or not body.get("lastName"):
+            return jsonify({"message": "กรุณากรอกชื่อและนามสกุล"}), 400
 
-    first_name = (body.get("firstName") or "").strip()
-    last_name = (body.get("lastName") or "").strip()
+        patient_resource = build_patient_resource(body)
 
-    if not first_name or not last_name:
-        return jsonify({"message": "กรุณากรอก firstName และ lastName"}), 400
-
-    patient_resource = build_patient_resource(body)
-
-    try:
-        response = requests.post(
-            f"{FHIR_SERVER_URL}/Patient",
-            json=patient_resource,
-            headers=FHIR_HEADERS,
-            timeout=20
-        )
-
-        # HAPI มักตอบ resource ที่สร้างกลับมา หรืออย่างน้อยมี Location header / id
-        response_json = {}
         try:
-            response_json = response.json()
-        except ValueError:
-            response_json = {"raw_response": response.text}
+            response = requests.post(
+                f"{FHIR_SERVER_URL}/Patient",
+                json=patient_resource,
+                headers=FHIR_HEADERS,
+                timeout=20
+            )
 
-        if response.status_code not in (200, 201):
+            response_json = response.json()
+
             return jsonify({
-                "message": "Failed to create Patient in FHIR server",
-                "status_code": response.status_code,
-                "fhir_response": response_json,
-                "sent_resource": patient_resource
+                "message": "Patient created successfully",
+                "patientId": response_json.get("id"),
+                "patient": response_json
+            }), response.status_code
+
+        except requests.RequestException as e:
+            return jsonify({
+                "message": "Cannot connect to FHIR server",
+                "detail": str(e)
             }), 502
 
-        patient_id = response_json.get("id")
-        location = response.headers.get("Location")
+    if request.method == "GET":
+        try:
+            response = requests.get(
+                f"{FHIR_SERVER_URL}/Patient",
+                headers={"Accept": "application/fhir+json"},
+                timeout=20
+            )
 
-        return jsonify({
-            "message": "Patient created successfully in HAPI FHIR",
-            "patientId": patient_id,
-            "location": location,
-            "patient": response_json,
-            "sent_resource": patient_resource
-        }), 201
+            data = response.json()
 
-    except requests.RequestException as e:
-        return jsonify({
-            "message": "Cannot connect to FHIR server",
-            "detail": str(e)
-        }), 502
+            if not response.ok:
+                return jsonify({
+                    "message": "Failed to fetch patients from FHIR server",
+                    "fhir_response": data
+                }), 502
 
+            patients = [entry.get("resource", {}) for entry in data.get("entry", [])]
 
+            return jsonify({
+                "total": len(patients),
+                "patients": patients
+            }), 200
+
+        except requests.RequestException as e:
+            return jsonify({
+                "message": "Cannot connect to FHIR server",
+                "detail": str(e)
+            }), 502
 @app.route("/patients/<patient_id>", methods=["GET"])
 def get_patient_by_id(patient_id):
     try:
@@ -267,6 +279,7 @@ def search_patient():
             "message": "Cannot connect to FHIR server",
             "detail": str(e)
         }), 502
+
 
 
 if __name__ == "__main__":

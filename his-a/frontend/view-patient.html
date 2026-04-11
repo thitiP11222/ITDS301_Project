@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>View Patient</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 30px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #1e3a8a;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .status {
+      margin-bottom: 15px;
+      font-weight: 500;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .card {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ข้อมูลผู้ป่วยทั้งหมด</h1>
+
+    <div class="search-box">
+      <input type="text" id="hn" placeholder="ค้นหา HN เช่น HN001" />
+      <button onclick="searchPatient()">ค้นหา</button>
+      <button onclick="loadAllPatients()">รีโหลดทั้งหมด</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function renderPatients(patients) {
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "";
+
+      patients.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const name = (p.name && p.name[0]) 
+          ? `${p.name[0].given?.[0] || ""} ${p.name[0].family || ""}`
+          : "ไม่ระบุชื่อ";
+
+        const hn = p.identifier?.find(i => i.system.includes("hn"))?.value || "-";
+
+        card.innerHTML = `
+          <h3>${name}</h3>
+          <p><b>HN:</b> ${hn}</p>
+          <p><b>Gender:</b> ${p.gender || "-"}</p>
+          <p><b>BirthDate:</b> ${p.birthDate || "-"}</p>
+          <pre>${JSON.stringify(p, null, 2)}</pre>
+        `;
+
+        resultDiv.appendChild(card);
+      });
+    }
+
+    async function loadAllPatients() {
+      const status = document.getElementById("status");
+
+      status.textContent = "กำลังโหลดข้อมูลทั้งหมด...";
+
+      try {
+        const response = await fetch("http://localhost:5001/patients");
+        const data = await response.json();
+
+        if (!response.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+
+        if (!data.patients || data.patients.length === 0) {
+          status.className = "status error";
+          status.textContent = "ไม่มีข้อมูลผู้ป่วย";
+          return;
+        }
+
+        status.className = "status success";
+        status.textContent = `พบ ${data.patients.length} รายการ`;
+
+        renderPatients(data.patients);
+
+      } catch (error) {
+        status.className = "status error";
+        status.textContent = "เชื่อมต่อ backend ไม่ได้";
+      }
+    }
+
+    async function searchPatient() {
+      const hn = document.getElementById("hn").value;
+      const status = document.getElementById("status");
+
+      if (!hn) {
+        loadAllPatients();
+        return;
+      }
+
+      status.textContent = "กำลังค้นหา...";
+
+      try {
+        const response = await fetch(`http://localhost:5001/patients/search?hn=${hn}`);
+        const data = await response.json();
+
+        if (!response.ok) throw new Error("ค้นหาไม่สำเร็จ");
+
+        if (!data.patients || data.patients.length === 0) {
+          status.className = "status error";
+          status.textContent = "ไม่พบข้อมูล";
+          return;
+        }
+
+        status.className = "status success";
+        status.textContent = `พบ ${data.patients.length} รายการ`;
+
+        renderPatients(data.patients);
+
+      } catch (error) {
+        status.className = "status error";
+        status.textContent = "เชื่อมต่อ backend ไม่ได้";
+      }
+    }
+
+    // โหลดข้อมูลทั้งหมดตอนเปิดหน้า
+    window.onload = loadAllPatients;
+  </script>
+</body>
+</html>

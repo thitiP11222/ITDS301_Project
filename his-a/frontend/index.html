@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HIS Main Menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: 'Sarabun', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      background: #ffffff;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(30, 64, 175, 0.12);
+      overflow: hidden;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      padding: 40px 32px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      margin: 0 0 10px;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .hero p {
+      margin: 0;
+      font-size: 1rem;
+      opacity: 0.95;
+    }
+
+    .menu-section {
+      padding: 36px 28px 40px;
+    }
+
+    .menu-title {
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-bottom: 28px;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .menu-card {
+      background: #f8fbff;
+      border: 1px solid #dbeafe;
+      border-radius: 20px;
+      padding: 28px 22px;
+      text-align: center;
+      transition: 0.25s ease;
+    }
+
+    .menu-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(37, 99, 235, 0.12);
+    }
+
+    .icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 30px;
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .menu-card h3 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+      color: #1e3a8a;
+    }
+
+    .menu-card p {
+      margin: 0 0 20px;
+      color: #475569;
+      line-height: 1.6;
+      font-size: 0.96rem;
+    }
+
+    .btn {
+      display: inline-block;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      transition: 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #16a34a;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #15803d;
+    }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 28px;
+      color: #64748b;
+      font-size: 0.93rem;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 {
+        font-size: 1.6rem;
+      }
+
+      .hero p {
+        font-size: 0.95rem;
+      }
+
+      .menu-section {
+        padding: 28px 20px 32px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Hospital Information System (HIS)</h1>
+      <p>ระบบจัดการข้อมูลผู้ป่วยสำหรับบันทึกและเรียกดูข้อมูลผ่าน FHIR</p>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-title">เมนูหลักของระบบ</div>
+
+      <div class="card-grid">
+        <div class="menu-card">
+          <div class="icon">➕</div>
+          <h3>เพิ่มข้อมูลผู้ป่วย</h3>
+          <p>บันทึกข้อมูลผู้ป่วย ข้อมูลการรับบริการ และข้อมูลใบสั่งยาเข้าสู่ระบบ</p>
+          <a href="/form" class="btn btn-primary">ไปหน้าเพิ่มข้อมูล</a>
+        </div>
+
+        <div class="menu-card">
+          <div class="icon">📋</div>
+          <h3>ดูข้อมูลผู้ป่วย</h3>
+          <p>ค้นหาและเรียกดูข้อมูลผู้ป่วยที่ถูกบันทึกไว้ในระบบ HAPI FHIR</p>
+          <a href="/view-patient" class="btn btn-secondary">ไปหน้าดูข้อมูล</a>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        เลือกเมนูที่ต้องการใช้งานเพื่อเริ่มต้นทำงานในระบบ
+      </div>
+    </div>
+  </div>
+</body>
+</html>
