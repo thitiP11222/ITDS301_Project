@@ -459,6 +459,102 @@ def list_patients():
         return json_response({"count": len(patients), "patients": patients})
     except Exception as e:
         return json_response({"message": "Internal server error", "detail": str(e)}, 500)
+    
+@app.route("/patients/<patient_id>", methods=["GET"])
+def get_patient_by_id(patient_id):
+    try:
+        response = requests.get(
+            build_fhir_url("Patient", patient_id),
+            headers=fhir_headers(),
+            timeout=FHIR_TIMEOUT,
+        )
+        data = parse_fhir_response(response)
+
+        if response.status_code == 404:
+            return json_response(
+                {
+                    "message": "Patient not found",
+                    "patientId": patient_id,
+                    "response": data,
+                },
+                404,
+            )
+
+        if not response.ok:
+            return json_response(
+                {
+                    "message": "Failed to fetch patient",
+                    "response": data,
+                },
+                response.status_code,
+            )
+
+        return json_response(data, 200)
+    except Exception as e:
+        return json_response({"message": "Internal server error", "detail": str(e)}, 500)
+
+
+@app.route("/patients/<patient_id>", methods=["PUT"])
+def update_patient(patient_id):
+    try:
+        body = request.get_json(silent=True) or {}
+
+        if not safe_get(body, "firstName") or not safe_get(body, "lastName"):
+            return json_response({"message": "firstName and lastName are required"}, 400)
+
+        patient_resource = build_patient_resource(body)
+        patient_resource["id"] = patient_id
+
+        response = requests.put(
+            build_fhir_url("Patient", patient_id),
+            headers=fhir_headers(),
+            json=patient_resource,
+            timeout=FHIR_TIMEOUT,
+        )
+        data = parse_fhir_response(response)
+
+        if not response.ok:
+            return json_response(
+                {
+                    "message": "Failed to update patient",
+                    "response": data,
+                },
+                response.status_code,
+            )
+
+        return json_response(
+            {
+                "message": "Patient updated successfully",
+                "patient": data,
+            },
+            200,
+        )
+    except Exception as e:
+        return json_response({"message": "Internal server error", "detail": str(e)}, 500)
+
+
+@app.route("/patients/<patient_id>", methods=["DELETE"])
+def delete_patient(patient_id):
+    try:
+        response = requests.delete(
+            build_fhir_url("Patient", patient_id),
+            headers=fhir_headers(),
+            timeout=FHIR_TIMEOUT,
+        )
+        data = parse_fhir_response(response)
+
+        if response.status_code in [200, 204]:
+            return json_response({"message": "ลบข้อมูลสำเร็จ"}, 200)
+
+        return json_response(
+            {
+                "message": "ลบข้อมูลไม่สำเร็จ",
+                "response": data,
+            },
+            response.status_code,
+        )
+    except Exception as e:
+        return json_response({"message": "Internal server error", "detail": str(e)}, 500)
 
 
 # =========================

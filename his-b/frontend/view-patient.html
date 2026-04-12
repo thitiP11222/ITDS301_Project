@@ -146,11 +146,11 @@
     }
 
     .btn-secondary {
-      background: #15803d;
+      background: #94a3b8;
     }
 
     .btn-secondary:hover {
-      background: #15803d;
+      background: #64748b;
     }
 
     .btn-success {
@@ -559,7 +559,37 @@
 
   <div id="toast" class="toast"></div>
 
+  <div id="deleteModal" class="modal">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header" style="justify-content: flex-start;">
+      <h2 style="color:#dc2626;">ยืนยันการลบ</h2>
+    </div>
+
+    <div style="padding: 6px 2px 18px; color:#334155; font-size:15px; line-height:1.6;">
+      คุณต้องการลบข้อมูลผู้ป่วยนี้ใช่หรือไม่?<br>
+      <span style="color:#dc2626; font-size:14px;">เมื่อลบแล้วจะไม่สามารถกู้คืนได้</span>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-secondary" onclick="closeDeleteModal()">ยกเลิก</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">ลบข้อมูล</button>
+    </div>
+  </div>
+</div>
+
   <script>
+let deletePatientId = null;
+
+function openDeleteModal(id) {
+  deletePatientId = id;
+  document.getElementById("deleteModal").style.display = "flex";
+}
+
+function closeDeleteModal() {
+  deletePatientId = null;
+  document.getElementById("deleteModal").style.display = "none";
+}
+
     function openDetailModal() {
       document.getElementById("detailModal").style.display = "flex";
     }
@@ -623,41 +653,55 @@
       return p.address?.[0]?.text || "-";
     }
 
+    function getPatientId(p) {
+  if (p.id && String(p.id).trim()) {
+    return String(p.id).trim();
+  }
+
+  if (p.resource && p.resource.id && String(p.resource.id).trim()) {
+    return String(p.resource.id).trim();
+  }
+
+  return "";
+}
+
     function renderPatients(patients) {
-      const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = "";
+  const resultDiv = document.getElementById("result");
+  resultDiv.innerHTML = "";
 
-      document.getElementById("totalCount").textContent = `ทั้งหมด ${patients.length} รายการ`;
+  document.getElementById("totalCount").textContent = `ทั้งหมด ${patients.length} รายการ`;
 
-      if (!patients.length) {
-        resultDiv.innerHTML = `
-          <tr>
-            <td colspan="7" class="empty-state">ไม่พบข้อมูลผู้ป่วย</td>
-          </tr>
-        `;
-        return;
-      }
+  if (!patients.length) {
+    resultDiv.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-state">ไม่พบข้อมูลผู้ป่วย</td>
+      </tr>
+    `;
+    return;
+  }
 
-      patients.forEach((p, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${getHN(p)}</td>
-          <td>${getPatientName(p)}</td>
-          <td>${p.gender || "-"}</td>
-          <td>${p.birthDate || "-"}</td>
-          <td>${getPhone(p)}</td>
-          <td>
-            <div class="action-group">
-              <button class="action-btn action-view" onclick="viewDetail('${p.id}')">ดูรายละเอียด</button>
-              <button class="action-btn action-edit" onclick="editPatient('${p.id}')">แก้ไข</button>
-              <button class="action-btn action-delete" onclick="deletePatient('${p.id}')">ลบ</button>
-            </div>
-          </td>
-        `;
-        resultDiv.appendChild(tr);
-      });
-    }
+  patients.forEach((p, index) => {
+    const tr = document.createElement("tr");
+    const patientId = getPatientId(p);
+
+    tr.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${getHN(p)}</td>
+      <td>${getPatientName(p)}</td>
+      <td>${p.gender || "-"}</td>
+      <td>${p.birthDate || "-"}</td>
+      <td>${getPhone(p)}</td>
+      <td>
+        <div class="action-group">
+          <button class="action-btn action-view" onclick="viewDetail('${patientId}')">ดูรายละเอียด</button>
+          <button class="action-btn action-edit" onclick="editPatient('${patientId}')">แก้ไข</button>
+          <button class="action-btn action-delete" onclick="deletePatient('${patientId}')">ลบ</button>
+        </div>
+      </td>
+    `;
+    resultDiv.appendChild(tr);
+  });
+}
 
     async function loadAllPatients() {
       const status = document.getElementById("status");
@@ -749,11 +793,17 @@
     }
 
     async function viewDetail(id) {
-      try {
-        const response = await fetch(`/patients/${id}`);
-        const data = await response.json();
+  if (!id) {
+    showToast("ไม่พบ Patient ID", "error");
+    return;
+  }
 
-        if (!response.ok) throw new Error("โหลดรายละเอียดไม่สำเร็จ");
+  try {
+    const response = await fetch(`/patients/${id}`);
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.message || "โหลดรายละเอียดไม่สำเร็จ");
+    
 
         const name = getPatientName(data);
         const hn = getHN(data);
@@ -798,7 +848,7 @@
             <div class="detail-label">ที่อยู่</div>
             <div class="detail-value">${address}</div>
           </div>
-        `;
+        `; 
 
         openDetailModal();
       } catch (error) {
@@ -807,11 +857,17 @@
     }
 
     async function editPatient(id) {
-      try {
-        const response = await fetch(`/patients/${id}`);
-        const data = await response.json();
+  if (!id) {
+    showToast("ไม่พบ Patient ID", "error");
+    return;
+  }
 
-        if (!response.ok) throw new Error("โหลดข้อมูลไม่สำเร็จ");
+  try {
+    const response = await fetch(`/patients/${id}`);
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.message || "โหลดข้อมูลไม่สำเร็จ");
+    
 
         document.getElementById("editPatientId").value = id;
         document.getElementById("editFirstName").value =
@@ -880,40 +936,49 @@
       }, 2500);
     }
 
-    async function deletePatient(id) {
-      const confirmed = confirm("ต้องการลบข้อมูลผู้ป่วยนี้ใช่หรือไม่?");
-      if (!confirmed) return;
+    function deletePatient(id) {
+  openDeleteModal(id);
+}
 
-      try {
-        const response = await fetch(`/patients/${id}`, {
-          method: "DELETE"
-        });
+async function confirmDelete() {
+  if (!deletePatientId) return;
 
-        const data = await response.json();
+  try {
+    const response = await fetch(`/patients/${deletePatientId}`, {
+      method: "DELETE"
+    });
 
-        if (!response.ok) {
-          throw new Error(data.message || "ลบไม่สำเร็จ");
-        }
+    const data = await response.json();
 
-        showToast("ลบข้อมูลสำเร็จ", "success");
-        loadAllPatients();
-      } catch (error) {
-        showToast(error.message || "ลบข้อมูลไม่สำเร็จ", "error");
-      }
+    if (!response.ok) {
+      throw new Error(data.message || "ลบไม่สำเร็จ");
     }
 
+    closeDeleteModal();
+    showToast("ลบข้อมูลสำเร็จ", "success");
+    loadAllPatients();
+  } catch (error) {
+    closeDeleteModal();
+    showToast(error.message || "ลบไม่สำเร็จ", "error");
+  }
+}
     window.addEventListener("click", function (event) {
-      const detailModal = document.getElementById("detailModal");
-      const editModal = document.getElementById("editModal");
+  const detailModal = document.getElementById("detailModal");
+  const editModal = document.getElementById("editModal");
+  const deleteModal = document.getElementById("deleteModal");
 
-      if (event.target === detailModal) {
-        closeDetailModal();
-      }
+  if (event.target === detailModal) {
+    closeDetailModal();
+  }
 
-      if (event.target === editModal) {
-        closeEditModal();
-      }
-    });
+  if (event.target === editModal) {
+    closeEditModal();
+  }
+
+  if (event.target === deleteModal) {
+    closeDeleteModal();
+  }
+});
 
     window.onload = loadAllPatients;
   </script>

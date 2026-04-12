@@ -660,6 +660,10 @@ def delete_patient(patient_id):
             timeout=FHIR_TIMEOUT,
         )
 
+        print("DELETE patient_id =", patient_id)
+        print("FHIR delete status =", response.status_code)
+        print("FHIR delete response =", response.text)
+
         if response.status_code in [200, 204]:
             return json_response({"message": "ลบข้อมูลสำเร็จ"}, 200)
 
@@ -669,7 +673,7 @@ def delete_patient(patient_id):
                 "status_code": response.status_code,
                 "detail": response.text,
             },
-            502,
+            response.status_code,
         )
 
     except requests.RequestException as e:
@@ -677,9 +681,9 @@ def delete_patient(patient_id):
             {
                 "message": "Cannot connect to FHIR server",
                 "detail": str(e),
-            },
-            502,
-        )
+                },
+    response.status_code,
+)
 
 
 @app.route("/patients/<patient_id>", methods=["PUT"])
