@@ -182,10 +182,29 @@ def build_patient_resource(data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def format_fhir_datetime(dt_str: str) -> str:
+    """
+    แปลง datetime-local จาก frontend
+    เช่น 2026-04-11T10:30 -> 2026-04-11T10:30:00+07:00
+    """
+    dt_str = (dt_str or "").strip()
+    if not dt_str:
+        return ""
+
+    if len(dt_str) == 16:  # YYYY-MM-DDTHH:MM
+        return dt_str + ":00+07:00"
+
+    if len(dt_str) == 19:  # YYYY-MM-DDTHH:MM:SS
+        return dt_str + "+07:00"
+
+    return dt_str
+
+
 def build_encounter_resource(data: Dict[str, Any], patient_id: str, patient: Dict[str, Any]) -> Dict[str, Any]:
     doctor = safe_get(data, "doctor")
     department = safe_get(data, "department")
     status = safe_get(data, "encounterStatus", "finished") or "finished"
+    visit_start = format_fhir_datetime(safe_get(data, "visitDateTime"))
 
     return {
         "resourceType": "Encounter",
@@ -200,7 +219,7 @@ def build_encounter_resource(data: Dict[str, Any], patient_id: str, patient: Dic
             "display": extract_patient_name(patient),
         },
         "period": {
-            "start": safe_get(data, "visitDateTime"),
+            "start": visit_start,
         },
         "serviceType": {
             "text": safe_get(data, "serviceType"),
