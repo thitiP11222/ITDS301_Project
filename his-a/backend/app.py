@@ -4,9 +4,24 @@ from typing import Any, Dict, List, Optional, Tuple
 import requests
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from flasgger import Swagger
 
 app = Flask(__name__)
 CORS(app)
+app.config["SWAGGER"] = {
+    "title": "HIS A API",
+    "uiversion": 3,
+}
+Swagger(
+    app,
+    template={
+        "info": {
+            "title": "HIS A API",
+            "version": "1.0.0",
+            "description": "Swagger documentation for Hospital A service.",
+        }
+    },
+)
 
 FHIR_SERVER_URL = os.getenv("FHIR_SERVER_URL", "http://fhir-server:8080/fhir").rstrip("/")
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -110,6 +125,7 @@ def find_patient_by_hn(hn: str) -> Optional[Dict[str, Any]]:
 
     systems_to_try = [
         "http://hospital-a.local/hn",
+        "http://hospital-b.local/hn",
         "http://hospital.local/hn",
     ]
 
@@ -386,6 +402,16 @@ def view_medication_page():
 # =========================================
 @app.route("/api", methods=["GET"])
 def api_home():
+    # คืนค่าสถานะพื้นฐานของ backend ฝั่ง HIS A
+    """
+    Basic API status
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: Basic backend status
+    """
     return json_response(
         {
             "message": "Hospital A Flask backend is running",
@@ -396,6 +422,18 @@ def api_home():
 
 @app.route("/health", methods=["GET"])
 def health():
+    # ใช้ตรวจว่า HIS A เชื่อมต่อ FHIR server ได้หรือไม่
+    """
+    Health check
+    ---
+    tags:
+      - System
+    responses:
+      200:
+        description: Backend and FHIR server are reachable
+      502:
+        description: FHIR server is unavailable
+    """
     try:
         response = requests.get(
             build_fhir_url("metadata"),
@@ -426,6 +464,53 @@ def health():
 # =========================================
 @app.route("/patients", methods=["GET", "POST"])
 def patients():
+    # GET ใช้ดูรายการผู้ป่วยทั้งหมด, POST ใช้สร้างผู้ป่วยใหม่
+    """
+    List patients or create a patient
+    ---
+    tags:
+      - Patients
+    parameters:
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            hn:
+              type: string
+              example: TEST-A-001
+            citizenId:
+              type: string
+              example: 1100000000001
+            firstName:
+              type: string
+              example: Demo
+            lastName:
+              type: string
+              example: Patient
+            gender:
+              type: string
+              example: male
+            birthDate:
+              type: string
+              example: 1999-01-01
+            phone:
+              type: string
+              example: 0812345678
+            address:
+              type: string
+              example: Bangkok
+    responses:
+      200:
+        description: Patient list returned
+      201:
+        description: Patient created
+      400:
+        description: Missing required fields
+      409:
+        description: Duplicate HN
+    """
     if request.method == "POST":
         body = request.get_json(force=True) or {}
 
@@ -551,6 +636,24 @@ def patients():
 
 @app.route("/patients/<patient_id>", methods=["GET"])
 def get_patient_by_id(patient_id):
+    # ใช้ดูข้อมูลผู้ป่วยรายคนด้วย patient id
+    """
+    Get patient by id
+    ---
+    tags:
+      - Patients
+    parameters:
+      - in: path
+        name: patient_id
+        type: string
+        required: true
+        example: 123
+    responses:
+      200:
+        description: Patient resource returned
+      404:
+        description: Patient not found
+    """
     try:
         response = requests.get(
             build_fhir_url("Patient", patient_id),
@@ -594,6 +697,29 @@ def get_patient_by_id(patient_id):
 
 @app.route("/patients/search", methods=["GET"])
 def search_patient():
+    # ใช้ค้นหาผู้ป่วยด้วย HN หรือเลขประชาชนจากข้อมูลใน FHIR กลาง
+    """
+    Search patient by HN or citizen ID
+    ---
+    tags:
+      - Patients
+    parameters:
+      - in: query
+        name: hn
+        type: string
+        required: false
+        example: TEST-A-001
+      - in: query
+        name: citizenId
+        type: string
+        required: false
+        example: 1100000000001
+    responses:
+      200:
+        description: Search completed
+      400:
+        description: Missing hn or citizenId
+    """
     hn = (request.args.get("hn") or "").strip()
     citizen_id = (request.args.get("citizenId") or "").strip()
 
@@ -603,9 +729,9 @@ def search_patient():
     try:
         params = {}
         if hn:
-            params["identifier"] = f"http://hospital-a.local/hn|{hn}"
+            params["identifier"] = hn
         else:
-            params["identifier"] = f"http://hospital-a.local/citizen-id|{citizen_id}"
+            params["identifier"] = citizen_id
 
         response = requests.get(
             build_fhir_url("Patient"),
@@ -653,6 +779,23 @@ def search_patient():
 
 @app.route("/patients/<patient_id>", methods=["DELETE"])
 def delete_patient(patient_id):
+    # ใช้ลบข้อมูลผู้ป่วยตาม patient id
+    """
+    Delete patient
+    ---
+    tags:
+      - Patients
+    parameters:
+      - in: path
+        name: patient_id
+        type: string
+        required: true
+    responses:
+      200:
+        description: Patient deleted
+      404:
+        description: Patient not found
+    """
     try:
         response = requests.delete(
             build_fhir_url("Patient", patient_id),
@@ -681,13 +824,35 @@ def delete_patient(patient_id):
             {
                 "message": "Cannot connect to FHIR server",
                 "detail": str(e),
-                },
-    response.status_code,
-)
+            },
+            502,
+        )
 
 
 @app.route("/patients/<patient_id>", methods=["PUT"])
 def update_patient(patient_id):
+    # ใช้แก้ไขข้อมูลผู้ป่วยตาม patient id
+    """
+    Update patient
+    ---
+    tags:
+      - Patients
+    parameters:
+      - in: path
+        name: patient_id
+        type: string
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+    responses:
+      200:
+        description: Patient updated
+      404:
+        description: Patient not found
+    """
     try:
         body = request.get_json(force=True) or {}
 
@@ -739,6 +904,48 @@ def update_patient(patient_id):
 # =========================================
 @app.route("/encounters", methods=["POST"])
 def create_encounter():
+    # ใช้บันทึกข้อมูลการเข้ารับบริการของผู้ป่วย
+    """
+    Create encounter
+    ---
+    tags:
+      - Encounters
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - hn
+            - visitDateTime
+          properties:
+            hn:
+              type: string
+              example: TEST-A-001
+            visitDateTime:
+              type: string
+              example: 2026-04-19T10:30
+            serviceType:
+              type: string
+              example: opd
+            department:
+              type: string
+              example: อายุรกรรม
+            doctor:
+              type: string
+              example: นพ.ตัวอย่าง
+            encounterStatus:
+              type: string
+              example: finished
+    responses:
+      201:
+        description: Encounter created
+      400:
+        description: Missing required fields
+      404:
+        description: Patient not found
+    """
     data = request.get_json(silent=True) or {}
     hn = safe_get(data, "hn")
 
@@ -790,6 +997,16 @@ def create_encounter():
         )
 @app.route("/encounters", methods=["GET"])
 def list_encounters():
+    # ใช้ดูรายการข้อมูลการเข้ารับบริการทั้งหมด
+    """
+    List encounters
+    ---
+    tags:
+      - Encounters
+    responses:
+      200:
+        description: Encounter list returned
+    """
     try:
         response = requests.get(
             build_fhir_url("Encounter"),
@@ -840,6 +1057,54 @@ def list_encounters():
 # =========================================
 @app.route("/medications", methods=["POST"])
 def create_medication():
+    # ใช้บันทึกข้อมูลใบสั่งยาของผู้ป่วย
+    """
+    Create medication request
+    ---
+    tags:
+      - Medications
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - hn
+            - medicineName
+          properties:
+            hn:
+              type: string
+              example: TEST-A-001
+            medicineName:
+              type: string
+              example: Paracetamol 500 mg
+            dosage:
+              type: string
+              example: 1 tablet
+            instruction:
+              type: string
+              example: After meals
+            frequency:
+              type: string
+              example: 3 times daily
+            quantity:
+              type: integer
+              example: 10
+            prescriptionDate:
+              type: string
+              example: 2026-04-19
+            prescribingDoctor:
+              type: string
+              example: นพ.ตัวอย่าง
+    responses:
+      201:
+        description: Medication request created
+      400:
+        description: Missing required fields
+      404:
+        description: Patient not found
+    """
     data = request.get_json(silent=True) or {}
     hn = safe_get(data, "hn")
 
@@ -885,6 +1150,16 @@ def create_medication():
 
 @app.route("/medications", methods=["GET"])
 def list_medications():
+    # ใช้ดูรายการใบสั่งยาทั้งหมด
+    """
+    List medication requests
+    ---
+    tags:
+      - Medications
+    responses:
+      200:
+        description: Medication list returned
+    """
     try:
         response = requests.get(
             build_fhir_url("MedicationRequest"),
@@ -932,15 +1207,23 @@ def list_medications():
 # =========================================
 @app.route("/exchange/patient/<hn>", methods=["GET"])
 def export_patient_package(hn: str):
+    # ใช้ส่งออกข้อมูลผู้ป่วยตาม HN เพื่อให้ HIS B ดึงไป import
     """
-    Endpoint for Hospital B to pull data from Hospital A.
-    Returns:
-    {
-      "sourceHospital": "Hospital A",
-      "patient": {...},
-      "encounter": {...} | null,
-      "medicationRequest": {...} | null
-    }
+    Export patient package for Hospital B
+    ---
+    tags:
+      - Exchange
+    parameters:
+      - in: path
+        name: hn
+        type: string
+        required: true
+        example: TEST-A-001
+    responses:
+      200:
+        description: Export package returned
+      404:
+        description: Patient not found in Hospital A
     """
     try:
         patient = find_patient_by_hn(hn)
