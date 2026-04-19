@@ -779,6 +779,23 @@ def search_patient():
 
 @app.route("/patients/<patient_id>", methods=["DELETE"])
 def delete_patient(patient_id):
+    # ใช้ลบข้อมูลผู้ป่วยตาม patient id
+    """
+    Delete patient
+    ---
+    tags:
+      - Patients
+    parameters:
+      - in: path
+        name: patient_id
+        type: string
+        required: true
+    responses:
+      200:
+        description: Patient deleted
+      404:
+        description: Patient not found
+    """
     try:
         response = requests.delete(
             build_fhir_url("Patient", patient_id),
@@ -807,13 +824,35 @@ def delete_patient(patient_id):
             {
                 "message": "Cannot connect to FHIR server",
                 "detail": str(e),
-                },
-    response.status_code,
-)
+            },
+            502,
+        )
 
 
 @app.route("/patients/<patient_id>", methods=["PUT"])
 def update_patient(patient_id):
+    # ใช้แก้ไขข้อมูลผู้ป่วยตาม patient id
+    """
+    Update patient
+    ---
+    tags:
+      - Patients
+    parameters:
+      - in: path
+        name: patient_id
+        type: string
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+    responses:
+      200:
+        description: Patient updated
+      404:
+        description: Patient not found
+    """
     try:
         body = request.get_json(force=True) or {}
 
